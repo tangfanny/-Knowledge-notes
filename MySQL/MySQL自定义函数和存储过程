@@ -1,0 +1,177 @@
+
+
+MySQL函数包括系统函数和自定义函数。
+
+
+自定义函数：
+定义语法格式：
+	CREATE FUNCTION function_name(参数列表)
+		RETURNS 返回值类型
+		routine_body
+说明：
+	要创建一个函数，就需要通过CREATE FUNCTION 这个语句，后面加上函数名，RETURNS后面跟上返回值类型，routine_body指函数体。
+函数名：function_name不能与已有的关键字冲突
+参数列表：可以有一个或者多个参数，甚至没有参数都可以，每个参数由参数名和参数类型构成
+返回值：指明返回值和返回类型
+函数体：自定义函数的函数体由流程控制、变量声明等语句构成，函数体中一定要含有return返回语句,不能在函数中访问表
+关于函数体的几点说明
+（1）函数体由合法的SQL语句构成；
+（2）函数体可以是简单的SELECT或INSERT语句；
+（3）函数体如果为复合结构则使用BEGIN....END语句；
+（4）复合结构可以包含声明、循环、控制语句；
+MySQL中创建存储过程和触发器的多条执行语句时，需要用到begin...end的形式，每个执行语句都必须以分号结束，但是这就会出现问题。因为系统默认分号就是sql结束的标志，遇到分号整个程序就结束了。要需要解决这个问题，就需要delimiter语句来改变程序的结束符号。
+修改默认的结束符语法:
+DELIMITER // 意思是修改默认的结束符";"为"//",以后的SQL语句都要以"//"作为结尾
+				DELIMITER //
+
+				CREATE FUNCTION addinfo1(gname  varchar(23)) 
+				RETURNS int 
+				BEGIN
+				insert into goods(goods_name)  values(gname);
+				RETURN (SELECT COUNT(gid) FROM goods);
+				END//
+
+自定义个函数，判断输入参数是否大于等于10：
+删除示例：
+DROP FUNCTION IF EXISTS `func_compare`;
+创建函数示例 
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` FUNCTION `func_compare`(a int) RETURNS varchar(200) CHARSET utf8
+BEGIN
+  IF a >= 10 THEN
+        RETURN '大于等于10';
+  ELSE
+      RETURN '小于10';
+  END IF;
+END
+;;
+DELIMITER ;
+调用示例
+SELECT func_compare(9), func_compare(11)
+
+
+
+ 例如1：
+create function nums(num1 int,num2 int)
+   returns  int
+return num1+num2;
+
+
+我们先来改一下编码方式为gbk,我们输入SET NAMES gbk;这里改变只影响我们客户端的编码方式，不影响服务器的编码方式，也就是说如果我在客户端写汉字的话，我们需要gbk,但是写入到数据库中，仍然是我们数据库当中默认的编码方式，因为我们的数据库是存在服务器端的。
+CREATE FUNCTION f1() RETURNS VARCHAR(30)
+RETURN DATE_FORMAT(NOW(),'%Y年%m月%d日 %H点:%i分:%s秒') ;
+
+CREATE  FUNCTION  get_time() 
+RETURNS VARCHAR(30)
+RETURN  DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i:%s') ;
+
+
+ create function  addgoods(goodsname varchar(30))
+ returns int unsigned
+ return
+ insert goods(goods_name)  valies(goodsname)
+ //
+
+调用：
+select  function_name(参数列表）；
+查看：
+SHOW  CREATE  FUNCTION  function_name;
+SHOW  FUNCTION  STATUS  LIKE  ‘parttern’;
+删除：
+DROP FUNCTION function_name;
+系统函数分类：
+
+数值型：处理数字，整型、浮点数
+    ABS(x)  返回x的绝对值    select abs(x);
+FLOOR(x)  返回小于或者等于x的最小整数
+SIGN(x)  返回x的符号，x是负数、0、正数时分别返回-1、0、1
+PI(x)  返回圆周率  
+字符串型
+日期时间型
+聚合函数
+流程控制
+1.IF(exper,v1,v2)函数   如果表达式exper成立返回v1否则返回v2
+2.IFNULL(v1,v2)函数    如果v1的值不为null返回v1,如果为null返回v2
+3.CASE
+语法1：
+CASE
+     WHEN e1
+ THEN  v1
+ WHEN  e2
+ THEN   v2
+.....
+ ELSE  vn
+END
+CASE表示函数开始，END表示函数结束。如果e1成立，返回v1，如果e2成立，返回v2，如果都不成立返回vn，只要有一个成立就不会进入下一个。	
+
+语法2：
+CASE exper
+WHEN  e1  THEN  v1
+WHEN  e2  THEN  v2
+.....
+ELSE  vn
+END
+如果表达式值等于v1则返回v1,如果表达式值等于e2则返回v2,都没有就返回vn
+系统信息函数
+
+
+
+存储过程函数
+存储过程是（Stored Procedure)一组为了完成特定功能的SQL语句集，经编译后存储在数据库中，用户通过指定存储过程的名字并给定参数来调用执行它
+一个存储过程是一个可编程函数，存储在数据库中。它可以有sql语句和一些特殊的控制结构组成。当希望在不同的应用程序或者平台执行特定的相同的函数，或封装特定的功能时，存储过程都是非常有用的。
+数据库中的存储过程可以看作是编程中面向对象方法的模拟。
+
+存储过程优点：
+1.增强了sql语言的功能和灵活性
+2.存储过程在第一次编译后再次调用就不需要再编译，比SQL语句执行效率要高（数据库执行动作时都是先编译后执行）
+3.直接调用存储过程可执行已经定义好的SQL语句
+4.存储过程可以避免开发人员重复编写相同的SQL语句
+5.存储过程是在MySQL服务器中存储和执行，可以减少客户端和服务器的数据传输
+
+定义存储过程格式：
+CREATE PROC[EDURE]  procedure_name(参数形式(in/out/inout) 参数名 类型）	
+begin 
+.......
+end
+
+例如：create procedure goodsinfo3()
+select goods_name,goods_price from goods;
+
+create procedure  goodsinsert(in gname varchar(20),in gprice  decimal(10,2))
+insert into goods(goods_name,goods_price) values(gname,gprice);
+
+in:用于输入参数
+out：用于返回参数
+inout：用于向存储过程传递参数值，如果该值改变则返回，当调用存储过程时需要在参数前加@，以确保参数在过程外调用
+drop procedure if exists goodsinfo;
+例如：create procedure  goodsinfo(in id int,out goods_name  varchar(20))
+select goods.goods_name from goods  where  goods.gid=id;
+
+调用存储过程：
+call  pro_name();  调用时存储过程后必须加括号，就算没有参数
+call  goodsinfo(10562,@goods_name)
+第一个值是传入的编号，第二个值是要返回的值，由于是out所以在调用时加@在过程外调用
+
+
+显示存储过程：
+show  procedure  status   显示数据库中所有存储过程的基本信息
+show  create  procedure  pro_name  显示某一个过程的详细信息
+
+
+CREATE  PROCEDURE `proc_adder`(IN a int, IN b int, OUT sums int)
+BEGIN
+    DECLARE c int;
+    if a is null then set a = 0; 
+    end if;
+  
+    if b is null then set b = 0;
+    end if;
+
+    set sums  = a + b;
+END
+;;
+DELIMITER ;
+调用：示例
+set @b=5;
+call proc_adder(2,@b,@s);
+select @s as sum;
