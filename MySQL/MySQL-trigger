@@ -1,0 +1,140 @@
+MySQL触发器
+一、触发器概述
+
+监听按钮的当前的onclick点击事件，事件发生时执行相应的函数，事件触发时就会执行函数中的内容
+利用javascript去监听某一个dom元素的事件进行的一个编程方式，称为事件驱动编程。
+种机制映射到数据表中：
+在当前的表上，设置一个对每行数据的一个监听器，监听相关事件，每当事件发生时，会执行由sql完成的一段功能代码，相当于javascript的click事件
+对某一个表的一定的操作，触发某种条件，从而自动执行的一段程序
+
+
+触发器是一种特殊的存储过程，它的执行不由程序调用，也不是由手工启动，而是由事件触发，比如对一个表的进行操作（insert、update、delete）时就会激活它执行。
+触发器经常用于加强事务的完整性约束和业务规则。
+触发器有一个非常好的特性：触发器可以禁止或者回滚违反引用完整性的修改，从而取消所尝试的数据修改
+举例子，街机游戏，闯过一关，闯下一关，有一关没过就重新来从第一关开始。触发器类似这个
+二、触发器作用
+监视增删改操作，并触发增删改操作
+1)保证MySQL数据的安全性（可以基于时间或者数据从而限制用户的操作权利）
+2)MySQL触发器可以自动计算数据值，如果数据值达到了一定的要求，则进行特定的处理
+3)MySQL触发器可以实现复杂的数据完整性规则（并可以对数据库中的表进行连环更新，通过产生比规则更为复杂的限制，实现非标准的数据完整性的限制）
+4)MySQL触发器可以跟踪用户对数据库的操作 ，审计用户操作数据库的语句，并写入审计表
+5)MySQL触发器可修改或者删除其他表中与之匹配的行设或者设置成null缺省值
+6)MySQL触发器可同步实时复制MySQL数据库种的数据
+
+三、触发器操作
+具有相同触发时间和触发事件的表，不能有2个触发程序
+1.创建触发器语法
+触发事件元素：
+事件、执行代码
+CREATE TRIGGER  trigger_name 事件  执行性代码
+
+CREATE  TRIGGER  trigger_name 
+{BEFORE | AFTER}   /*表示是某个事件之前还是之后触发*/
+ {INSERT | UPDATE |DELETE}  /*表示一个表上什么事件发生时会触发*/
+ON  table_name
+FOR  EACH  ROW  /*监听它的每一行*/
+triggered  sql  statement;  /*要执行的一条或多条语句，不能有select语句，类似写存储过程的语句，可以用begin和end写多条语句*/
+
+事件：
+插入insert
+修改update
+删除delete
+事件的时机：执行之前和执行之后  after before
+事件和时机组成了六种事件：
+before insert,before delete , before update
+after insert , after delete , after update
+一个完整事件，规定在哪个表上什么时机什么动作上  
+on  table_name   FOR  EACH  ROW   （我们在监听当前表的每一行）
+可执行性代码：
+sql语句组成的代码  （javascript的可执行代码是javascript的脚本语言，显示修改更新dom元素的属性，对于MySQL来讲就是SQL语句，DLL  DML  ..)
+ 	CREATE TRIGGER  money  after update on stu 
+ 		for each row  
+ 		update class set c_money=c_money+20 ;
+
+
+如何触发，特定时间发生即触发
+
+例如：在订单表下单两件商品时同时让商品表库存自动减少
+create  trigger  update  goods   after  update  on  order_goods  
+for  each  row 
+update  goods  set   goods_number=goods_number-20;
+
+update  order_goods  set  goods_number=good_number+20; 	
+
+
+更新时检查库存，使库存保持在0-100范围内
+create trigger b  before  update   on  goods  for each row 
+ 			begin
+ 				if  new.g_number>100
+ 					then  set new.g_number=100;
+ 				elseif  new.g_number<100
+ 					then  set new.g_number=0;
+ 				end if;
+ 			end #
+
+注意问题：
+触发器不能同名（如果已经存在一个名字的触发器，不能再创建）
+目前MySQL只支持一类事件支持一个触发器
+
+触发器内，获得触发器内触发程序时的数据：
+利用触发程序内的new和old关键字,永远代表on后边表里的记录，也就是代表触发该事件的数据表
+old：表示监听事件所在表上数据在事件发生之前的数据，旧的数据
+new：监听表上事件发生之后新处理的数据，新的数据
+数据，就是触发该事件的记录
+create  trigger  mygoodsup  after  update  on  order_goods  for  each  row 
+ update  goods  set  goods_number=goods_number-(new.order_number-old.order_number) where  gid=new.goods_id;
+
+insert不能使用old
+delete不能使用new
+create trigger  testdelete  after  delete  on  order_goods  for  each  row 
+update  goods  set  goods_number=goods_number-(new.order_number-old.order_number);
+
+create trigger  test delete  after  insert  on  order_goods  for  each  row 
+update  goods  set  goods_number=goods_number-(new.order_number-old.order_number);
+
+
+例如：
+CREATE  TRIGGER  `myuser_insert` 
+AFTER   INSERT  
+ ON  `app_user`  
+FOR   EACH   ROW  
+BEGIN    INSERT INTO  rec_userinfolog(uid,sex,city) VALUES(new.uid,new.sex,new.city);
+END
+
+MySQL中，如果一个触发程序由多条sql语句组成，应该:
+1.将语句组成语句块（begin和end用来标识语句块）
+2.语句块内的语句需要独立的语句结束符，分号，
+
+由于触发器程序内使用分号作为语句结束符，那么命令行客户端碰到分号时，就应该理解为触发程序内子语句结束，而不是整个创建语句触发器的语句结束
+应该通过修改命令行语句结束符达到目的，delimiter语句可以完成语句结束设置
+delimiter $$
+
+create trigger  goodstest  after  update  on  order_goods  for  each  row  
+begin
+update goods  set  goods_number=goods_number+20;
+update goods  set  goods_price=goods_price-20;
+end
+$$
+
+ update order_goods set order_number=10  where goods_id=10233;$$
+
+delimiter ;
+
+
+
+CREATE TRIGGER  trigger_name
+BEFORE | AFTER  INSERT | UPDATE | DELETE
+ON  table_name  FOR  EACH  ROW
+BEGIN 
+执行语句列表
+END
+
+2.查看触发器
+MySQL中，可执行SHOW TRIGGER语句来查看触发器的基本信息。基本格式如下：
+SHOW  TRIGGERS;
+查看单独某个触发器：
+SHOW  CREATE  TRIGGER  trigger_name;
+MySQL中，所有的触发器都定义在information_schema数据库中的trigger表中，查看trigger表，可以查看到数据库中所有触发器的详细信息。查询语句如下：
+SELECT *  FROM  information_schema.triggers;
+3.删除触发器
+DROP  TRIGGER  trigger_name;
