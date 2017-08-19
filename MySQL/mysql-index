@@ -1,0 +1,115 @@
+一、索引概念：
+索引用来快速寻找特定值的记录，所以MySQL索引都以B-树的形式保存。
+如果没有索引，执行查询时MySQL必须从第一个记录开始 扫描整个表的所有记录，直至找到符合要求的记录。表里面的记录数量越 多，这个操作的代价就越高。如果作为搜索条件的列上已经创建了索引，MySQL无需扫描任何记录即可迅速得到目标记录所在的位置。如果表有1000个记 录，通过索引查找记录至少要比顺序扫描记录快100倍。
+索引是按记录对多个字段进行排序的方式。对表中某个字段建立索引会创建另一种数据结构，其中保存着字段的值，每个字段又指向它相关的记录。这种索引的结构是经过排序的，因而可以对其进行二分查找。
+索引是一种特殊的文件(InnoDB数据表上的索引是表空间的一个组成部分)，它们包含着对数据表里所有记录的引用指针。更通俗的说，数据库索引好比是一本书前面的目录，能加快数据库的查询速度。上述SQL语句，在没有索引的情况下，数据库会遍历全部200条数据后选择符合条件的；而有了相应的索引之后，数据库会直接在索引中查找符合条件的选项。如果我们把SQL语句换成“SELECT * FROM article WHERE id=2000000”，那么你是希望数据库按照顺序读取完200万行数据以后给你结果还是直接在索引中定位呢？上面的两个图片鲜明的用时对比已经给出了答案（注：一般数据库默认都会为主键生成索引）。
+索引是一种特殊的数据库结构，可以用来快速查询数据库表中的特定记录。索引是提高数据库性能的重要方式。MySQL中，所有的数据类型都可以被索引。MySQL的索引包括普通索引、唯一性索引、全文索引、单列索引、多列索引等。
+
+例如：
+   假设我们创建了一个名为people的表：
+    CREATE TABLE people ( peopleid SMALLINT NOT NULL, name CHAR(50) NOT NULL );
+    然后，我们完全随机把1000个不同name值插入到people表。在数据文件中name 列没有任何明确的次序。如果我们创建了name列的索引，MySQL将在索引中排序name列,对于索引中的每一项，MySQL在内部为它保存一个数据文 件中实际记录所在位置的“指针”。因此，如果我们要查找name等于“Mike”记录的peopleid(SQL命令为“SELECT peopleid FROM people WHERE name=Mike;”)，MySQL能够在name的索引中查找“Mike”值，然后直接转到数据文件中相应的行，准确地返回该行的 peopleid(999)。在这个过程中，MySQL只需处理一个行就可以返回结果。如果没有“name”列的索引，MySQL要扫描数据文件中的所有 记录，即1000个记录!显然，需要MySQL处理的记录数量越少，则它完成任务的速度就越快。
+为表设置索引是要付出代价的：
+1.增加了数据库的存储空间
+2.在插入和修改数据时花费更多的时间
+
+MySQL数据库在使用索引将带来如下优点：
+查询优化
+唯一性
+文本搜索
+索引在数据越大时越重要
+
+二、MySQL索引类型
+1.普通索引：最基本的索引，	没有任何限制 index
+创建方式：
+如果是varchar char类型，length可以小于实际长度；如果是blob和text类型，必须指定length
+CREATE INDEX  index_name  ON  table_name（column_name(length））;
+ALTER  table_name ADD  INDEX  [index_name]  ON  table_name(column_name(length));
+CREATE TABLE table_name(
+ID INT NOT NULL,
+name  VARCHAR(10) NOT  NULL,
+INDEX [index_name](name(length))
+);
+drop index index_name on table_name ;
+alter table table_name drop index index_name ;
+alter table table_name drop primary key ; 
+
+2.唯一索引：索引的值必须唯一，可以允许有空值  unique
+创建方式：
+CREATE UNIQUE INDEX  index_name  ON  table_name(column_name(length));
+ALTER TABLE ADD UNIQUE  [index_name]  ON  table_name(column_name(length));
+CREATE TABLE  table_name(
+ID  INT  NOT  NULL,
+name  VARCHAR(10)  NOT NULL,
+UNIQUE  [index_name] (name(length))
+);
+3.主键索引：是一种特殊的唯一索引，不允许有空值，一般是在建表的时候创建唯一的主键索引  primary key
+一个表只能有一个主键
+创建方式：
+ALTER TABLE   table_name  ADD  PRIMARY KEY ON  table_name(column_name(length));
+CREATE  TABLE  table_name(
+ID  INT  NOT  NULL,
+name  VARCHAR(10)  NOT NULL,
+PRIMARY  KEY(ID)
+);
+4.组合索引
+创建方式：
+ALTER  TABLE  table_name  ADD  INDEX  index_name(column1(length),column2,column3..);
+CREATE  TABLE  table_name(
+ID  INT  NOT  NULL,
+name  VARCHAR(18)  NOT  NULL,
+age   INT(11)  NOT  NULL,
+INDEX [index_name] (name(10),age)
+);
+单列索引的效率远远低于组合索引的查询效率，使用组合索引时需要注意，只有使用了索引的第一个字段才会触发索引。如果没使用索引的第一个字段，则这个组合索引将不会起作用。
+
+平时用的SQL查询语句一般都有比较多的限制条件，所以为了进一步榨取MySQL的效率，就要考虑建立组合索引。例如上表中针对title和time建立一个组合索引：ALTER TABLE article ADD INDEX index_titme_time (title(50),time(10))。建立这样的组合索引，其实是相当于分别建立了下面两组组合索引：
+–title,time
+–title
+为什么没有time这样的组合索引呢？这是因为MySQL组合索引“最左前缀”的结果。简单的理解就是只从最左面的开始组合。并不是只要包含这两列的查询都会用到该组合索引，如下面的几个SQL所示
+–使用到上面的索引
+SELECT * FROM article WHREE title='测试' AND time=1234567890;
+SELECT * FROM article WHREE title='测试';
+–不使用上面的索引
+SELECT * FROM article WHREE time=1234567890;
+5.全文索引：一种特殊的索引，把某个数据表的某个数据列出现的单词生成一份清单 fulltext index
+全文索引仅用于myisam表中，如果表数据中出现多个相同字符时，使用where  column  like “%字符%”，但是这样做会使索引失效，这时就需要用到全文索引了
+创建方式：
+ALTER  TABLE  table_name  ADD  FULLTEXT（column1,column2);
+CREATE  TABLE  table_name(
+ID  INT  NOT  NULL,
+name  VARCHAR(16)  NOT NULL,
+FULL INDEX(name)
+);
+
+删除索引：
+DROP INDEX  [index_name] ON table_name;
+查看索引：
+SHOW  INDEX  FROM  table_name;
+SHOW  KEYS   FROM  table_name;
+三、使用索引注意事项
+建立索引时要考虑索引应该建立在数据库表的某些列上面，哪一些列需要建立索引，哪些是多余的，一般会有：
+1.索引中不会包含null值的列，
+只要列中包含null值都将不会被包含在索引中，复合索引中只要有一列包含null值，那么这一一列对于复合索引是无效的，所以我们在设置数据库字段时最好不要设默认值null
+2.like语句操作
+一般情况下不鼓励使用like，如果非要使用，如何使用也是一个问题。 like “%aaa%” 不会使用索引而like “aaa%”可以使用索引。
+3.不要在列上进行运算
+例如：查找一个商品表中库存小于平均库存的所有数据
+select *  from  users  where  year(addtime)<2017;  这样将在列上进行运算导致索引失效而进行全表扫描，可以改成：
+select *  from  users  where  addtime<’2017-1-1’;
+4.不使用NOT IN和<>操作
+5.如果条件中带or，就算条件中带索引也不会使用
+6.不过度使用索引
+总结：MySQL只对以下操作符才能使用索引：>,<,>=,<=,between,in,以及某些时候的like。理论上每张表里最多可创建16个索引。
+四、索引使用优点
+1.可以通过建立主键索引和唯一索引来保证数据库中每一行数据的唯一性
+2.建立索引可以大大减少检索的数据及表的检索行数
+3.在表与表的连接条件，可以加速表与表直接的相连
+4.在查询中使用索引可以提高性能
+
+五、索引使用缺点
+1.创建和维护索引，会耗费时间，随着数据量的增加而增加
+2.索引文件会占用物理空间，除了数据表要占用物理空间外，每一个索引还会占用一定的物理空间
+3.当对表的数据进行insert、update、delete的时候，索引也要动态的维护，这样会降低数据的维护速度
+
+
