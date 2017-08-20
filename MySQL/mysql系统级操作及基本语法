@@ -1,0 +1,65 @@
+一、MySQL系统操作
+1.启动MySQL服务
+1)命令行模式：net start/stop mysql
+问题1：服务名无效
+
+解决1：若服务名无效代表没有安装MySQL服务，执行：mysqld.exe  -install
+
+
+问题2：发生系统错误
+
+解决2：在MySQL配置文件my.ini中添加路径
+
+切换到bin目录，先删除前面安装的mysql服务（删除服务不一定要到bin目录），再重新在bin目录下安装mysql服务，然后启动：
+
+
+2)服务模式：控制面板〉管理工具〉服务〉mysql >启动/停止
+3）Windows操作系统下要使用DOS窗口来执行命令，读者可以在【开始】|【运行】中打开一个【运行】对话框。
+services.msc
+
+
+2.登录MySQL数据库系统，打开dos窗口
+1)登录：mysql  -h服务器地址  -u登录名  -P端口号  -p
+2)或登录：mysql  --host=服务器地址  --user=用户名  --port=端口  --password，root用户默认第一次密码为空，直接确认
+3)退出：quit; 或 exit;
+4)注意：登录数据库系统后，需要使用“set names 编码名；”来设定当前连接数据库的“环境变量”，即当前跟数据库打交道的“客户端”本身的编码。通常来说，cmd客户端中是固定的gbk编码，而php网页中，是该网页文件的编码（现在主流都是utf8）。
+数据库的数据操作一定要考虑到“字符编码”，在操作数据之前一定要设定好操作环境的编码：
+	在cmd环境中，这样设定： set names gbk;	——这是跟环境有关，跟数据库的charset无关。
+	在php文件中，要跟php文件的编码一致，比如：php是utf-8编码，则应该设定：set names utf8;
+
+3.环境变量配置
+环境变量是在操作系统中用来指定操作系统运行环境的一些参数
+path指定可执行性文件的搜索路径
+如果MySQL的应用程序的目录没有添加到Windows系统的Path中，可以手工的将MySQL的目录添加到Path中，以便可以直接从运行对话框中输入MySQL数据库的命令
+右击【我的电脑】图标，选择【属性】命令。
+在系统变量中选中Path变量，然后单击【编辑】按钮进入编辑环境变量的对话框.。
+可以在【变量值】中添加MySQL的应用程序的目录。已经存在的目录用分号隔开。
+echo %path%
+set path=%path%
+%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;C:\ProgramFiles\ThinkPad\Bluetooth Software\;C:\Program Files\ThinkPad\Bluetooth Software\syswow64;D:\phpinvir\Apache24le\bin;D:\phpinvir\mysql\bin;
+
+MySQL的配置文件：my.ini文件
+port=3306 # mysql服务端默认监听(listen on)的TCP/IP端口
+basedir="D:/php/mysql/MySQL Server 5.5/" # 基准路径，其他路径都相对于这个路径
+datadir="D:/php/mysql/MySQL Server 5.5/Data" # mysql数据库文件所在目录
+default-storage-engine=INNODB  # 创建新表时将使用的默认存储引擎
+
+二、MySQL基础语法规定
+1.语句行：
+一条语句也称为一条命令，通常用一个分号(;)结束；也可以通过"delimiter 新结束符" 命令来设定新的结束符。
+语句的执行是以一条语句为单位进行，一次执行一条语句。
+2.字母大小写问题
+mysql中的各种系统关键字和命令名本身是不区分大小写的
+mysql中自定义的名称（标识符）的大小写问题，有的区分（跟操作系统有关），有的不区分，详见如下“命名规则”
+3.MySQL标识符命名规则：
+可以自己命名的名字，称为标识符，包括：数据库名， 表名，字段名，视图名，函数名，过程名，变量名，用户名，，等等。
+可以命名标识符的字符比常规的语言多，但特别建议只用：字母数字和下划线，并不用数字开头。
+非常规字符或系统关键字虽然可以作为标识符使用，但最好要包在反引号（数字1左边那个反撇 ` ）中，并且不推荐。
+对数据库名，表名，和视图名，在window系统中不区分大小写，而其他系统中区分，建议全使用小写，并采用下划线分割法。
+对其他自己命名的标识符（字段名，函数名，过程名），不区分大小写，但也建议全使用小写，并采用下划线分割法
+4.注释
+单行注释： #注释内容
+单行注释： -- 注释内容（注意，两个“--”之后有一个空格）
+多行注释： /*注释内容*/
+
+
