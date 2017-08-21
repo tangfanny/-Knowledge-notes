@@ -1,0 +1,163 @@
+数据库操作
+
+DDL（data  definition  language)
+
+数据库
+
+创建：create  database  db_name;
+
+显示：show  databases;   创建信息：show create  database  db_name;
+
+删除：drop database  db_name;
+
+使用：use  db_name;
+
+数据表
+
+创建：create  table  tab_name(  id  int  [ default ] [null] [comment]) [engine Innodb   charset utf8  comment ''   auto_increment=10];
+
+显示：show  tables;  / show create table tab_name /desc|describe tab_name
+
+删除:delete  from tab_name  [where条件] ;   /  truncate  tab_name;
+
+删除表：drop table  tab_name;
+
+修改字段属性或者字段名：alter table  tab_name  modify/change    字段名  类型   属性/old  new   类型 字段属性      
+
+添加字段：alter table tab_name  add  字段名  字段类型  字段属性
+
+DML(data management  language)
+
+插入语句：insert into  tab_name[(xx,xx,xx)]  values(xx,xx,xx);
+
+更新:update tab_name  set  字段名=字段值   [where条件] ;
+
+删除：delete  from   tab_name   [where  条件];
+
+DQL(data query language)
+
+基本查询
+
+语法：select  单个字段，xx|* |distinct  字段名   from  tab_name   [where条件]   [group  by]  [having]  [ order by  asc|desc]  limit  0,10 ;
+
+连表查询
+
+内连接：select  ...   from  tab1  [inner]  join  tab2   on  等值条件;    |  cross join (交叉连接所有数据合并M*N行）
+
+左外连接：select ... from  tab1  left  join tab2  on  等值条件（左表为主表，结果集包括左表所有数据）
+
+右外连接：select ... from  tab1  right  join tab2  on  等值条件（右表tab2为主表，结果集包括右表所有数据）
+
+子查询
+
+select  *  from  tab  where  id   in/>any/<all   | where  exists   (select  语句) ;
+
+合并查询
+
+select  语句  union默认消除重复记录    [all|distinct消除重复记录]  select  语句;
+
+DCL（data control  language)用户管理
+
+用户管理
+
+创建用户：create  user   'username'@'主机地址'   [identified  by  密码 ];
+
+删除用户：drop  user  'username'@'主机地址'; /delete  from user  where user=username  and  host=主机地址;
+
+修改密码：set  password  [for  'username'@'主机地址'] = password('密码');
+
+用户权限
+
+授权：grant  all privileges/权限名称   on  db_name|*.tab_name|*   to   'username'@'主机地址'  [identified by ''] ;
+
+撤回权限：revoke   权限列表|all privileges   on  db_name.tab_name   from   'user'@'主机地址'  [identified by 密码] ;
+
+查看权限：show  grants  for   ‘username'@'主机地址' ;
+
+DTL(data  transaction  language) 事务
+
+事务开启：start transaction;
+
+提交：commit;
+
+回滚:rollback;
+
+事务特性（ACID):原子性、一致性、隔离性、永久性
+
+视图view
+
+创建视图：create view  view_name[(xx,xx,xx)]  as  select xx,xx,xx  from  tab_name;  
+
+insert  不能
+
+更新:update  view_name   set  字段名=字段值  where 条件;
+
+删除：drop  view view_name;       delete  from  view_name  where条件;
+
+查看：show create  view  view_name;      select  * from  information_schema.views;       
+
+运算符
+
+算数运算符
+
+比较运算符
+
+逻辑运算符
+
+存储过程
+
+存储过程创建：create  procedure  pro_name(in  a   int, in  b  int, out  res   int)  [begin  end] | 单条sql代码
+
+存储过程调用：call  pro_name(par1,par2,@res);
+
+显示存储过程：show  create  procedure  pro_name;
+
+删除：drop  procedure  pro_name;
+
+自定义函数
+
+创建：create   function  fun_name(a  int,b varchar)   returns   int      [begin  return... end]  |  sql单条代码
+
+调用：SQL语句查询语句中使用
+
+显示创建语法：show  create  function  fun_name;
+
+删除：drop  function fun_name;
+
+内置函数
+
+时间类：now() , current_time()、current_timestamp()
+
+字符串:concat()、concat_ws('-',1,2,3)、upper()、lower()....
+
+数值：abs()、floor()、ceil()....
+
+聚合函数：avg()、max()、min()、sum()、count()
+
+其他函数：version()、database()、user()...
+
+触发器trigger
+
+创建语法：create trigger  tri_name  after|before   insert|update|delete    on  tab_name   for  each  row     [begin   触发后的执行性代码   end]     =====old  new(针对tab_name 中的新旧数据    update  delete 有old, update  insert有new）=======
+
+显示触发器:show  triggers;       show create  trigger  tri_name;     select  *   from  information_schema.triggers;
+
+删除：drop  trigger tri_name;
+
+数据库备份还原
+
+备份
+
+一个库中的单个表（一个表）：mysqldump   -uroot -p   db_name  tab_name >地址及文件
+
+一个库：mysqldump  -uroot  -p   db_name  >地址及文件
+
+多个库：mysqldump   -uroot -p  --databases  db1  db2 ..>地址及文件名
+
+所有库：mysqldump  -uroot  -p  --all-databases  >地址及文件名
+
+还原
+
+不登录情况：mysql /mysqldump   -uroot  -p   db_name  < 地址及文件名
+
+登录后：[需要选择库或者创建库]  source  地址及文件名
