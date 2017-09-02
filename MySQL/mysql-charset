@@ -1,0 +1,692 @@
+character-set-server/default-character-set：服务器字符集，默认情况下所采用的。 
+character-set-database：数据库字符集。 
+character-set-table：数据库表字符集。 
+优先级依次增加。所以一般情况下只需要设置character-set-server，而在创建数据库和表时不特别指定字符集，这样统一采用character-set-server字符集。 
+character-set-client：客户端的字符集。客户端默认字符集。当客户端向服务器发送请求时，请求以该字符集进行编码。 
+character-set-results：结果字符集。服务器向客户端返回结果或者信息时，结果以该字符集进行编码。 
+在客户端，如果没有定义character-set-results，则采用character-set-client字符集作为默认的字符集。所以只需要设置character-set-client字符集。 
+
+要处理中文，则可以将character-set-server和character-set-client均设置为GB2312，如果要同时处理多国语言，则设置为UTF8。 
+
+关于MySQL的中文问题 
+
+解决乱码的方法是，在执行SQL语句之前，将MySQL以下三个系统参数设置为与服务器字符集character-set-server相同的字符集。 
+character_set_client：客户端的字符集。 
+character_set_results：结果字符集。 
+character_set_connection：连接字符集。 
+设置这三个系统参数通过向MySQL发送语句：set names gb2312 
+
+ 
+character_set_client     | gbk     客户端字符集，客户端请求数据库服务器时要求此字符集编码
+ character_set_connection | gbk   
+ character_set_database   | utf8   数据库字符集
+ character_set_filesystem | binary   
+ character_set_results    | gbk   结果字符集。服务器向客户端返回结果或者信息时，结果以该字符集进行编码。
+ character_set_server     | utf8   服务器字符集，默认情况下所采用的
+ character_set_system     | utf8  
+
+
+服务器字符集character_set_server-》数据库字符集=》表字符集=》字段字符集（字符串）
+set  names  xxx;  相当于执行下边三条：
+    set  character_set_client   =  xxx;
+    set  character_set_connection  =  xxx;
+set   character_set_results  =  xxx;
+
+
+
+
+
+
+
+
+
+
+
+
+字符集是一套符号和编码。校对规则是在字符集内用于比较字符的一套规则。让我们使用一个假想字符集的例子来区别清楚。
+
+假设我们有一个字母表使用了四个字母：‘A’、‘B’、‘a’、‘b’。我们为每个字母赋予一个数值：‘A’=0，‘B’= 1，‘a’= 2，‘b’= 3。字母‘A’是一个符号，数字0是‘A’的编码，这四个字母和它们的编码组合在一起是一个字符集。
+
+假设我们希望比较两个字符串的值：‘A’和‘B’。比较的最简单的方法是查找编码：‘A’为0，‘B’为1。因为0 小于1，我们可以说‘A’小于‘B’。我们做的仅仅是在我们的字符集上应用了一个 校对规则。校对规则是一套规则（在这种情况下仅仅是一套规则）：“对编码进行比较。”我们称这种全部可能的规则中的最简单的 校对规则为一个binary（二元）校对规则。
+
+
+
+
+SHOW CHARACTER SET;
+SHOW COLLATION LIKE 'latin1%';
+
+CREATE DATABASE db_name
+    [[DEFAULT] CHARACTER SET charset_name]
+    [[DEFAULT] COLLATE collation_name]
+
+ALTER DATABASE db_name
+    [[DEFAULT] CHARACTER SET charset_name]
+    [[DEFAULT] COLLATE collation_name]
+例如：
+
+CREATE DATABASE db_name
+    DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci;
+
+
+CREATE TABLE tbl_name (column_list)
+    [DEFAULT CHARACTER SET charset_name [COLLATE collation_name]]
+
+ALTER TABLE tbl_name
+    [DEFAULT CHARACTER SET charset_name] [COLLATE collation_name]
+
+CREATE TABLE t1 ( ... )
+DEFAULT CHARACTER SET latin1 COLLATE latin1_danish_ci;
+
+
+col_name {CHAR | VARCHAR | TEXT} (col_length)
+    [CHARACTER SET charset_name [COLLATE collation_name]]
+
+例如：
+
+CREATE TABLE Table1
+
+(
+    column1 VARCHAR(5) CHARACTER SET latin1 COLLATE latin1_german1_ci
+);
+
+
+示例1：表和列定义
+
+CREATE TABLE t1
+(
+    c1 CHAR(10) CHARACTER SET latin1 COLLATE latin1_german1_ci
+) DEFAULT CHARACTER SET latin2 COLLATE latin2_bin;
+
+示例2：表和列定义
+
+CREATE TABLE t1
+(
+    c1 CHAR(10) CHARACTER SET latin1
+) DEFAULT CHARACTER SET latin1 COLLATE latin1_danish_ci;
+
+示例3：表和列定义
+
+CREATE TABLE t1
+(
+    c1 CHAR(10)
+) DEFAULT CHARACTER SET latin1 COLLATE latin1_danish_ci;
+
+示例4：数据库、表和列定义
+
+CREATE DATABASE d1
+    DEFAULT CHARACTER SET latin2 COLLATE latin2_czech_ci;
+USE d1;
+CREATE TABLE t1
+(
+    c1 CHAR(10)
+);
+
+当查询离开客户端后，在查询中使用哪种字符集？
+
+服务器使用character_set_client变量作为客户端发送的查询中使用的字符集。
+
+服务器接收到查询后应该转换为哪种字符集？
+
+转换时，服务器使用character_set_connection和collation_connection系统变量。它将客户端发送的查询从character_set_client系统变量转换到character_set_connection（除非字符串文字具有象_latin1或_utf8的引介词）。collation_connection对比较文字字符串是重要的。对于列值的字符串比较，它不重要，因为列具有更高的 校对规则优先级。
+
+服务器发送结果集或返回错误信息到客户端之前应该转换为哪种字符集？
+
+character_set_results变量指示服务器返回查询结果到客户端使用的字符集。包括结果数据，例如列值和结果元数据（如列名）。
+
+
+有两个语句影响连接字符集：
+
+SET NAMES 'charset_name'
+SET CHARACTER SET charset_name
+SET NAMES显示客户端发送的SQL语句中使用什么字符集。因此，SET NAMES 'cp1251'语句告诉服务器“将来从这个客户端传来的信息采用字符集cp1251”。它还为服务器发送回客户端的结果指定了字符集。（例如，如果你使用一个SELECT语句，它表示列值使用了什么字符集。）
+
+SET NAMES 'x'语句与这三个语句等价：
+mysql> SET character_set_client = x;
+mysql> SET character_set_results = x;
+mysql> SET character_set_connection = x;
+
+SET CHARACTER SET语句是类似的，但是为 默认数据库设置连接字符集和校对规则。SET CHARACTER SET x语句与这三个语句等价：
+mysql> SET character_set_client = x;
+mysql> SET character_set_results = x;
+mysql> SET collation_connection = @@collation_database;
+
+当一个客户端连接时，它向服务器发送希望使用的字符集名称。服务器为那个字符集设置character_set_client、character_set_results和 character_set_connection变量。（实际上，服务器为使用该字符集执行一个SET NAMES操作。）
+
+
+SHOW CHARACTER SET、SHOW COLLATION、SHOW CREATE DATABASE、SHOW CREATE TABLE和SHOW COLUMNS。
+
+SHOW CHARACTER SET LIKE 'latin%';
+SHOW COLLATION LIKE 'latin1%';
+
+SHOW FULL COLUMNS FROM person\G
+
+UTF8字符集（转换Unicode表示）是存储Unicode数据的一种可选方法。它根据 RFC 3629执行。UTF8字符集的思想是不同Unicode字符采用变长字节序列编码：
+
+·         基本拉丁字母、数字和标点符号使用一个字节。
+
+·         大多数的欧洲和中东手写字母适合两个字节序列：扩展的拉丁字母（包括发音符号、长音符号、重音符号、低音符号和其它音符）、西里尔字母、希腊语、亚美尼亚语、希伯来语、阿拉伯语、叙利亚语和其它语言。
+
+·         韩语、中文和日本象形文字使用三个字节序列。
+
+SHOW VARIABLES LIKE 'character_set_system';
+
+SHOW COLLATION LIKE 'utf8%';
+utf8_unicode_ci的最主要的特色是支持扩展，即当把一个字母看作与其它字母组合相等时。例如，在德语和一些其它语言中‘ß’等于‘ss’。
+
+utf8_general_ci是一个遗留的 校对规则，不支持扩展。它仅能够在字符之间进行逐个比较。这意味着utf8_general_ci校对规则进行的比较速度很快，但是与使用utf8_unicode_ci的 校对规则相比，比较正确性较差）。
+
+ gb2312（GB2312 简体中文）校对规则：
+
+o        gb2312_bin
+
+o        gb2312_chinese_ci（ 默认）
+
+·         gbk（GBK简体中文） 校对规则：
+
+o        gbk_bin
+
+o        gbk_chinese_ci（ 默认）
+
+
+MySQL支持多种列类型：数值类型、日期/时间类型和字符串(字符)类型
+几种列类型描述使用了下述惯例：
+
+·         M
+
+表示最大显示宽度。最大有效显示宽度是255。
+
+·         D
+
+适用于浮点和定点类型，并表示小数点后面的位数。最大可能的值是30，但不应大于M-2。
+
+·         方括号(‘[’和‘]’)表示可选部分。
+
+数值类型概述
+M指示最大显示宽度。最大有效显示宽度是255。显示宽度与存储大小或类型包含的值的范围无关
+如果为一个数值列指定ZEROFILL，MySQL自动为该列添加UNSIGNED属性。
+
+SERIAL是BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE的一个别名。
+
+在整数列定义中，SERIAL DEFAULT VALUE是NOT NULL AUTO_INCREMENT UNIQUE的一个别名。
+ BIT[(M)]
+
+位字段类型。M表示每个值的位数，范围为从1到64。如果M被省略， 默认为1。
+
+TINYINT[(M)] [UNSIGNED] [ZEROFILL]
+
+很小的整数。带符号的范围是-128到127。无符号的范围是0到255。
+
+  BOOL，BOOLEAN
+
+是TINYINT(1)的同义词。zero值被视为假。非zero值视为真。
+
+·         SMALLINT[(M)] [UNSIGNED] [ZEROFILL]
+
+小的整数。带符号的范围是-32768到32767。无符号的范围是0到65535。
+        MEDIUMINT[(M)] [UNSIGNED] [ZEROFILL]
+
+中等大小的整数。带符号的范围是-8388608到8388607。无符号的范围是0到16777215。
+         INT[(M)] [UNSIGNED] [ZEROFILL]
+
+普通大小的整数。带符号的范围是-2147483648到2147483647。无符号的范围是0到4294967295。
+INTEGER[(M)] [UNSIGNED] [ZEROFILL]
+
+这是INT的同义词。
+         BIGINT[(M)] [UNSIGNED] [ZEROFILL]
+
+大整数。带符号的范围是-9223372036854775808到9223372036854775807。无符号的范围是0到18446744073709551615。
+FLOAT[(M,D)] [UNSIGNED] [ZEROFILL]
+
+小(单精度)浮点数。允许的值是-3.402823466E+38到-1.175494351E-38、0和1.175494351E-38到3.402823466E+38。这些是理论限制，基于IEEE标准。实际的范围根据硬件或操作系统的不同可能稍微小些。
+M是小数纵位数，D是小数点后面的位数。如果M和D被省略，根据硬件允许的限制来保存值。单精度浮点数精确到大约7位小数位。
+
+如果指定UNSIGNED，不允许负值。
+
+使用浮点数可能会遇到意想不到的问题，因为在MySQL中的所有计算用双精度完成
+DOUBLE[(M,D)] [UNSIGNED] [ZEROFILL]
+
+普通大小(双精度)浮点数。允许的值是-1.7976931348623157E+308到-2.2250738585072014E-308、0和2.2250738585072014E-308到 1.7976931348623157E+308。这些是理论限制，基于IEEE标准。实际的范围根据硬件或操作系统的不同可能稍微小些。
+
+M是小数总位数，D是小数点后面的位数。如果M和D被省略，根据硬件允许的限制来保存值。双精度浮点数精确到大约15位小数位。
+
+如果指定UNSIGNED，不允许负值。
+
+FLOAT(p) [UNSIGNED] [ZEROFILL]
+
+浮点数。p表示精度（以位数表示），但MySQL只使用该值来确定是否结果列的数据类型为FLOAT或DOUBLE。如果p为从0到24，数据类型变为没有M或D值的FLOAT。如果p为从25到53，数据类型变为没有M或D值的DOUBLE。结果列范围与本节前面描述的单精度FLOAT或双精度DOUBLE数据类型相同。
+DECIMAL[(M[,D])] [UNSIGNED] [ZEROFILL]
+
+压缩的“严格”定点数。M是小数位数(精度)的总数，D是小数点(标度)后面的位数。小数点和(负数)的‘-’符号不包括在M中。如果D是0，则值没有小数点或分数部分。DECIMAL整数最大位数(M)为65。支持的十进制数的最大位数(D)是30。如果D被省略， 默认是0。如果M被省略， 默认是10。
+如果指定UNSIGNED，不允许负值。
+
+所有DECIMAL列的基本计算(+，-，*，/)用65位精度完成。
+
+ 日期和时间类型概述
+ DATE
+
+日期。支持的范围为'1000-01-01'到'9999-12-31'。MySQL以'YYYY-MM-DD'格式显示DATE值，但允许使用字符串或数字为DATE列分配值。
+ DATETIME
+
+日期和时间的组合。支持的范围是'1000-01-01 00:00:00'到'9999-12-31 23:59:59'。MySQL以'YYYY-MM-DD HH:MM:SS'格式显示DATETIME值，但允许使用字符串或数字为DATETIME列分配值。
+
+TIMESTAMP[(M)]
+
+时间戳。范围是'1970-01-01 00:00:00'到2037年。
+
+TIMESTAMP列用于INSERT或UPDATE操作时记录日期和时间。如果你不分配一个值，表中的第一个TIMESTAMP列自动设置为最近操作的日期和时间。也可以通过分配一个NULL值，将TIMESTAMP列设置为当前的日期和时间。
+
+TIMESTAMP值返回后显示为'YYYY-MM-DD HH:MM:SS'格式的字符串，显示宽度固定为19个字符。如果想要获得数字值，应在TIMESTAMP 列添加+0。
+        
+        TIME
+
+时间。范围是'-838:59:59'到'838:59:59'。MySQL以'HH:MM:SS'格式显示TIME值，但允许使用字符串或数字为TIME列分配值。
+
+·         YEAR[(2|4)]
+
+两位或四位格式的年。默认是四位格式。在四位格式中，允许的值是1901到2155和0000。在两位格式中，允许的值是70到69，表示从1970年到2069年。MySQL以YYYY 格式显示YEAR值，但允许使用字符串或数字为YEAR列分配值。
+
+字符串类型概述
+
+ 许多字符串数据类型的列定义可以包括指定字符集的CHARACTER SET属性，也可能包括校对规则。(CHARSET是CHARACTER SET的一个同义词）。这些属性适用于CHAR、VARCHAR、TEXT类型、ENUM和SET。例如：
+
+·                CREATE TABLE t
+·                (
+·                    c1 CHAR(20) CHARACTER SET utf8,
+·                    c2 CHAR(20) CHARACTER SET latin1 COLLATE latin1_bin
+·                );
+该表定义创建了一个名为c1的列，具有一个utf8字符集和该字符集的默认 校对规则，和一个名为c2的列以及latin1字符集和该字符集的二元 校对规则。二元校对规则对大小写不敏感。
+
+对于CHAR、VARCHAR和TEXT类型，BINARY属性可以为列分配该列字符集的 校对规则。
+
+ [NATIONAL] CHAR(M) [BINARY| ASCII | UNICODE]
+
+固定长度字符串，当保存时在右侧填充空格以达到指定的长度。M表示列长度。M的范围是0到255个字符。
+
+注释：当检索CHAR值时尾部空格被删除。
+
+如果想要将某个CHAR的长度设为大于255，执行的CREATE TABLE或ALTER TABLE语句将失败并提示错误
+
+CHAR是CHARACTER的简写。NATIONAL CHAR(或其等效短形式NCHAR)是标准的定义CHAR列应使用 默认字符集的SQL方法。这在MySQL中为默认值。
+MySQL允许创建类型CHAR(0)的列。这主要用于必须有一个列但实际上不使用值的旧版本的应用程序相兼容。当你需要只能取两个值的列时也很好：没有定义为NOT NULL的一个CHAR(0)列只占用一位，只可以取值NULL和''(空字符串)。
+
+ [NATIONAL] VARCHAR(M) [BINARY]
+
+变长字符串。M 表示最大列长度。M的范围是0到65,535。(VARCHAR的最大实际长度由最长的行的大小和使用的字符集确定。最大有效长度是65,532字节）。
+VARCHAR是字符VARYING的简写。
+
+BINARY属性是指定列的字符集的二元 校对规则的简写。排序和比较基于数值字符值。
+VARCHAR保存时用一个字节或两个字节长的前缀+数据。如果VARCHAR列声明的长度大于255，长度前缀是两个字节。
+
+
+ BINARY(M)
+
+BINARY类型类似于CHAR类型，但保存二进制字节字符串而不是非二进制字符串。
+
+·         VARBINARY(M)
+
+VARBINARY类型类似于VARCHAR类型，但保存二进制字节字符串而不是非二进制字符串。
+
+·         TINYBLOB
+
+最大长度为255(28–1)字节的BLOB列。
+
+·         TINYTEXT
+
+最大长度为255(28–1)字符的TEXT列。
+
+·         BLOB[(M)]
+
+最大长度为65,535(216–1)字节的BLOB列。
+
+可以给出该类型的可选长度M。如果给出，则MySQL将列创建为最小的但足以容纳M字节长的值的BLOB类型。
+
+·         TEXT[(M)]
+
+最大长度为65,535(216–1)字符的TEXT列。
+
+可以给出可选长度M。则MySQL将列创建为最小的但足以容纳M字符长的值的TEXT类型。
+
+         MEDIUMBLOB
+
+最大长度为16,777,215(224–1)字节的BLOB列。
+
+·         MEDIUMTEXT
+
+最大长度为16,777,215(224–1)字符的TEXT列。
+
+·         LONGBLOB
+
+最大长度为4,294,967,295或4GB(232–1)字节的BLOB列。LONGBLOB列的最大有效(允许的)长度取决于客户端/服务器协议中配置最大包大小和可用的内存。
+
+·         LONGTEXT
+
+最大长度为4,294,967,295或4GB(232–1)字符的TEXT列。LONGTEXT列的最大有效(允许的)长度取决于客户端/服务器协议中配置最大包大小和可用的内存。
+
+·         ENUM('value1','value2',...)
+
+枚举类型。只能有一个值的字符串，从值列'value1'，'value2'，...，NULL中或特殊 ''错误值中选出。ENUM列最多可以有65,535个截然不同的值。ENUM值在内部用整数表示。
+
+·         SET('value1','value2',...)
+
+一个设置。字符串对象可以有零个或多个值，每个值必须来自列值'value1'，'value2'，...SET列最多可以有64个成员。SET值在内部用整数表示。 
+
+
+数值类型
+
+MySQL还支持选择在该类型关键字后面的括号内指定整数值的显示宽度(例如，INT(4))。该可选显示宽度规定用于显示宽度小于指定的列宽度的值时从左侧填满宽度。
+
+显示宽度并不限制可以在列内保存的值的范围，也不限制超过列的指定宽度的值的显示。
+
+当结合可选扩展属性ZEROFILL使用时， 默认补充的空格用零代替。例如，对于声明为INT(5) ZEROFILL的列，值4检索为00004。请注意如果在整数列保存超过显示宽度的一个值，当MySQL为复杂联接生成临时表时会遇到问题，因为在这些情况下MySQL相信数据适合原列宽度。
+
+所有整数类型可以有一个可选(非标准)属性UNSIGNED。当你想要在列内只允许非负数和该列需要较大的上限数值范围时可以使用无符号值。
+
+浮点和定点类型也可以为UNSIGNED。同数类型，该属性防止负值保存到列中。然而，与整数类型不同的是，列值的上范围保持不变。
+
+如果为一个数值列指定ZEROFILL，MySQL自动为该列添加UNSIGNED属性。
+
+对于浮点列类型，在MySQL中单精度值使用4个字节，双精度值使用8个字节。
+
+FLOAT类型用于表示近似数值数据类型。SQL标准允许在关键字FLOAT后面的括号内选择用位指定精度(但不能为指数范围)。MySQL还支持可选的只用于确定存储大小的精度规定。0到23的精度对应FLOAT列的4字节单精度。24到53的精度对应DOUBLE列的8字节双精度。
+
+MySQL允许使用非标准语法：FLOAT(M,D)或REAL(M,D)或DOUBLE PRECISION(M,D)。这里，“(M,D)”表示该值一共显示M位整数，其中D位位于小数点后面。例如，定义为FLOAT(7,4)的一个列可以显示为-999.9999。MySQL保存值时进行四舍五入，因此如果在FLOAT(7,4)列内插入999.00009，近似结果是999.0001
+
+为了保证最大可能的可移植性，需要使用近似数值数据值存储的代码应使用FLOAT或DOUBLE PRECISION，不规定精度或位数。
+
+DECIMAL和NUMERIC类型在MySQL中视为相同的类型。它们用于保存必须为确切精度的值，例如货币数据。当声明该类型的列时，可以(并且通常要)指定精度和标度；例如：
+
+salary DECIMAL(5,2)
+在该例子中，5是精度，2是标度。精度表示保存值的主要位数，标度表示小数点后面可以保存的位数。
+标准SQL要求salary列能够用5位整数位和两位小数保存任何值。因此，在这种情况下可以保存在salary列的值的范围是从-999.99到999.99。
+
+在标准SQL中，语法DECIMAL(M)等价于DECIMAL(M,0)。同样，语法DECIMAL等价于DECIMAL(M,0)，可以通过计算确定M的值。在MySQL 5.1中支持DECIMAL和NUMERIC数据类型的变量形式。M默认值是10。
+
+DECIMAL或NUMERIC的最大位数是65，但具体的DECIMAL或NUMERIC列的实际范围受具体列的精度或标度约束。如果此类列分配的值小数点后面的位数超过指定的标度允许的范围，值被转换为该标度。(具体操作与操作系统有关，但一般结果均被截取到允许的位数）。
+
+
+BIT数据类型可用来保存位字段值。BIT(M)类型允许存储M位值。M范围为1到64。
+
+要指定位值，可以使用b'value'符。value是一个用0和1编写的二进制值。例如，b'111'和b'100000000'分别表示7和128
+如果为BIT(M)列分配的值的长度小于M位，在值的左边用0填充。例如，为BIT(6)列分配一个值b'101'，其效果与分配b'000101'相同
+
+
+当要在一个数值列内保存一个超出该列允许范围的值时，MySQL的操作取决于此时有效的SQL模式。如果模式未设置，MySQL将值裁剪到范围的相应端点，并保存裁减好的值。但是，如果模式设置为traditional(“严格模式”)，超出范围的值将被拒绝并提示错误，并且根据SQL标准插入会失败
+
+如果INT列是UNSIGNED，列范围的大小相同，但其端点会变为到0和4294967295。如果你试图保存-9999999999和9999999999，以非严格模式保存到列中的值是0和4294967296。
+
+如果在浮点或定点列中分配的值超过指定(或默认)精度和标度规定的范围，MySQL以非严格模式保存表示范围相应端点的值。
+
+当MySQL没有工作在严格模式时，对于ALTER TABLE、LOAD DATA INFILE、UPDATE和多行INSERT语句，由于裁剪发生的转换将报告为警告。当MySQL工作在严格模式时，这些语句将失败，并且部分或全部值不会插入或更改，取决于是否表为事务表和其它因素。
+
+
+日期和时间类型
+
+表示时间值的DATE和时间类型为DATETIME、DATE、TIMESTAMP、TIME和YEAR。每个时间类型有一个有效值范围和一个“零”值，当指定不合法的MySQL不能表示的值时使用“零”值。
+
+MySQL还允许将'0000-00-00'保存为“伪日期”(如果不使用NO_ZERO_DATE SQL模式)。这在某些情况下比使用NULL值更方便(并且数据和索引占用的空间更小)。
+
+如果试图插入一个不合法的日期，MySQL将给出警告或错误。
+
+MySQL使用以下规则解释两位年值：
+
+o        70-99范围的年值转换为1970-1999。
+
+o        00-69范围的年值转换为2000-2069。
+
+ 当 MySQL遇到一个日期或时间类型的超出范围或对于该类型不合法的值时(如本节开始所描述)，它将该值转换为该类的“零”值。一个例外是超出范围的TIME值被裁剪到TIME范围的相应端点。
+
+“零”值是特殊值，但你可以使用表内显示的值显式保存或引用它们。你也可以使用值'0'或0来保存或引用，写起来更容易。
+
+DATETIME、DATE和TIMESTAMP类型
+
+当你需要同时包含日期和时间信息的值时则使用DATETIME类型。MySQL以'YYYY-MM-DD HH:MM:SS'格式检索和显示DATETIME值。支持的范围为'1000-01-01 00:00:00'到'9999-12-31 23:59:59'。(“支持”表示尽管先前的值可能工作，但没有保证)。
+
+当你只需要日期值而不需要时间部分时应使用DATE类型。MySQL用'YYYY-MM-DD'格式检索和显示DATE值。支持的范围是'1000-01-01'到 '9999-12-31'。
+
+TIMESTAMP列类型的属性不固定，取决于MySQL版本和服务器运行的SQL模式。
+
+函数返回的结果，其值适合DATETIME、DATE或者TIMESTAMP上下文，例如NOW()或CURRENT_DATE。
+
+无效DATETIME、DATE或者TIMESTAMP值被转换为相应类型的“零”值('0000-00-00 00:00:00'、'0000-00-00'或者00000000000000)。
+
+记住尽管可以使用相同的格式指定DATETIME、DATE和TIMESTAMP值，不同类型的值的范围却不同。例如，TIMESTAMP值不能早于1970或晚于2037。这说明一个日期，例如'1968-01-01'，虽然对于DATETIME或DATE值是有效的，但对于TIMESTAMP值却无效，如果分配给这样一个对象将被转换为0。
+在非严格模式，MySQL服务器只对日期的合法性进行基本检查：年、月和日的范围分别是1000到9999、00到12和00到31。任何包含超出这些范围的部分的日期被转换成'0000-00-00'。请注意仍然允许你保存非法日期，例如'2002-04-31'。要想确保不使用严格模式时日期有效，应检查应用程序。
+在严格模式，非法日期不被接受，并且不转换。
+
+MySQL使用以下规则解释两位年值：
+
+o        00-69范围的年值转换为2000-2069。
+
+o        70-99范围的年值转换为1970-1999。
+
+TIMESTAMP列的显示格式与DATETIME列相同。换句话说，显示宽度固定在19字符，并且格式为YYYY-MM-DD HH:MM:SS。
+
+如果一个表内的第1个TIMESTAMP列指定为一个DEFAULT值，则不能忽略。 默认值可以为CURRENT_TIMESTAMP或常量日期和时间值。
+
+DEFAULT NULL与第1个TIMESTAMP 列的DEFAULT CURRENT_TIMESTAMP相同。对于其它TIMESTAMP列，DEFAULT NULL被视为DEFAULT 0。
+
+ 在DEFAULT和ON UPDATE子句中可以使用CURRENT_TIMESTAMP、CURRENT_TIMESTAMP()或者NOW()。它们均具有相同的效果。
+
+ 例子，下面这些语句是等效的：
+
+CREATE TABLE t (ts TIMESTAMP);
+CREATE TABLE t (ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                             ON UPDATE CURRENT_TIMESTAMP);
+CREATE TABLE t (ts TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                             DEFAULT CURRENT_TIMESTAMP);
+
+可以在TIMESTAMP列的定义中包括NULL属性以允许列包含NULL值。例如：
+
+CREATE TABLE t
+(
+  ts1 TIMESTAMP NULL DEFAULT NULL,
+  ts2 TIMESTAMP NULL DEFAULT 0,
+  ts3 TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+如果使用NULL而不是DEFAULT TIMESTAMP来定义TIMESTAMP列，如下所示...
+
+CREATE TABLE t1 (ts NULL DEFAULT NULL);
+CREATE TABLE t2 (ts NULL DEFAULT '0000-00-00 00:00:00');
+...则必须显式插入一个对应当前日期和时间的值。例如：
+
+INSERT INTO t1 VALUES (NOW());
+INSERT INTO t2 VALUES (CURRENT_TIMESTAMP);
+
+TIME类型
+MySQL以'HH:MM:SS'格式检索和显示TIME值(或对于大的小时值采用'HHH:MM:SS'格式)。TIME值的范围可以从'-838:59:59'到'838:59:59'。小时部分会因此大的原因是TIME类型不仅可以用于表示一天的时间(必须小于24小时)，还可能为某个事件过去的时间或两个事件之间的时间间隔(可以大于24小时，或者甚至为负)。
+超出TIME范围但合法的值被裁为范围最接近的端点。例如，'-850:00:00'和'850:00:00'被转换为'-838:59:59'和'838:59:59'。
+
+无效TIME值被转换为'00:00:00'。
+
+
+YEAR类型
+
+YEAR类型是一个单字节类型用于表示年。
+
+MySQL以YYYY格式检索和显示YEAR值。范围是1901到2155。
+
+可以指定各种格式的YEAR值：
+
+·         四位字符串，范围为'1901'到'2155'。
+
+·         四位数字，范围为1901到2155。
+
+·         两位字符串，范围为'00'到'99'。'00'到'69'和'70'到'99'范围的值被转换为2000到2069和1970到1999范围的YEAR值。
+
+·         两位整数，范围为1到99。1到69和70到99范围的值被转换为2001到2069和1970到1999范围的YEAR值。请注意两位整数范围与两位字符串范围稍有不同，因为你不能直接将零指定为数字并将它解释为2000。你必须将它指定为一个字符串'0'或'00'或它被解释为0000。
+
+·         函数返回的结果，其值适合YEAR上下文，例如NOW()。
+
+非法YEAR值被转换为0000。
+
+
+String类型
+
+字符串类型指CHAR、VARCHAR、BINARY、VARBINARY、BLOB、TEXT、ENUM和SET
+
+CHAR和VARCHAR类型
+
+CHAR和VARCHAR类型类似，但它们保存和检索的方式不同。它们的最大长度和是否尾部空格被保留等方面也不同。在存储或检索过程中不进行大小写转换。
+
+CHAR和VARCHAR类型声明的长度表示你想要保存的最大字符数。例如，CHAR(30)可以占用30个字符。
+
+CHAR列的长度固定为创建表时声明的长度。长度可以为从0到255的任何值。当保存CHAR值时，在它们的右边填充空格以达到指定的长度。当检索到CHAR值时，尾部的空格被删除掉。在存储或检索过程中不进行大小写转换。
+
+VARCHAR列中的值为可变长字符串。长度可以指定为0到65,535之间的值。(VARCHAR的最大有效长度由最大行大小和使用的字符集确定。整体最大长度是65,532字节）。
+
+同CHAR对比，VARCHAR值保存时只保存需要的字符数，另加一个字节来记录长度(如果列声明的长度超过255，则使用两个字节)。
+
+VARCHAR值保存时不进行填充。当值保存和检索时尾部的空格仍保留，符合标准SQL。
+
+如果分配给CHAR或VARCHAR列的值超过列的最大长度，则对值进行裁剪以使其适合。如果被裁掉的字符不是空格，则会产生一条警告。如果裁剪非空格字符，则会造成错误(而不是警告)并通过使用严格SQL模式禁用值的插入
+
+
+
+请注意上表中最后一行的值只适用不使用严格模式时；如果MySQL运行在严格模式，超过列长度不的值不保存，并且会出现错误。
+
+根据分配给列的字符集校对规则对CHAR和VARCHAR列中的值进行排序和比较。
+
+请注意所有MySQL校对规则属于PADSPACE类。这说明在MySQL中的所有CHAR和VARCHAR值比较时不需要考虑任何尾部空格
+对于尾部填充字符被裁剪掉或比较时将它们忽视掉的情形，如果列的索引需要唯一的值，在列内插入一个只是填充字符数不同的值将会造成复制键值错误。
+
+BINARY和VARBINARY类型
+
+BINARY和VARBINARY类类似于CHAR和VARCHAR，不同的是它们包含二进制字符串而不要非二进制字符串。也就是说，它们包含字节字符串而不是字符字符串。这说明它们没有字符集，并且排序和比较基于列值字节的数值值。
+
+BINARY和VARBINARY允许的最大长度一样，如同CHAR和VARCHAR，不同的是BINARY和VARBINARY的长度是字节长度而不是字符长度。
+
+BLOB和TEXT类型
+
+BLOB是一个二进制大对象，可以容纳可变数量的数据。有4种BLOB类型：TINYBLOB、BLOB、MEDIUMBLOB和LONGBLOB。它们只是可容纳值的最大长度不同。
+
+有4种TEXT类型：TINYTEXT、TEXT、MEDIUMTEXT和LONGTEXT。这些对应4种BLOB类型，有相同的最大长度和存储需求。
+BLOB 列被视为二进制字符串(字节字符串)。TEXT列被视为非二进制字符串(字符字符串)。BLOB列没有字符集，并且排序和比较基于列值字节的数值值。TEXT列有一个字符集，并且根据字符集的 校对规则对值进行排序和比较。
+
+在TEXT或BLOB列的存储或检索过程中，不存在大小写转换。
+
+当未运行在严格模式时，如果你为BLOB或TEXT列分配一个超过该列类型的最大长度的值值，值被截取以保证适合。如果截掉的字符不是空格，将会产生一条警告。使用严格SQL模式，会产生错误，并且值将被拒绝而不是截取并给出警告
+BLOB和TEXT列不能有 默认值。
+
+BLOB或TEXT对象的最大大小由其类型确定，但在客户端和服务器之间实际可以传递的最大值由可用内存数量和通信缓存区大小确定。你可以通过更改max_allowed_packet变量的值更改消息缓存区的大小，但必须同时修改服务器和客户端程序。
+
+
+ENUM类型
+
+ENUM是一个字符串对象，其值来自表创建时在列规定中显式枚举的一列值。
+
+在某些情况下，ENUM值也可以为空字符串('')或NULL：
+
+·         如果你将一个非法值插入ENUM(也就是说，允许的值列之外的字符串)，将插入空字符串以作为特殊错误值。该字符串与“普通”空字符串不同，该字符串有数值值0。后面有详细讨论。
+
+·         如果将ENUM列声明为允许NULL，NULL值则为该列的一个有效值，并且 默认值为NULL。如果ENUM列被声明为NOT NULL，其默认值为允许的值列的第1个元素。
+
+每个枚举值有一个索引：
+
+·         来自列规定的允许的值列中的值从1开始编号。
+
+·         空字符串错误值的索引值是0。这说明你可以使用下面的SELECT语句来找出分配了非法ENUM值的行：
+
+·                mysql> SELECT * FROM tbl_name WHERE enum_col=0;
+·         NULL值的索引是NULL。
+
+枚举最多可以有65,535个元素。
+
+当创建表时，ENUM成员值的尾部空格将自动被删除。
+当检索时，保存在ENUM列的值使用列定义中所使用的大小写来显示。请注意可以为ENUM列分配字符集和 校对规则。对于二进制或大小写敏感的校对规则，当为列分配值时应考虑大小写。
+
+如果在数值上下文中检索一个ENUM值，将返回列值的索引。例如，你可以这样从ENUM列搜索数值值：
+
+mysql> SELECT enum_col+0 FROM tbl_name;
+如果将一个数字保存到ENUM列，数字被视为索引，并且保存的值是该索引对应的枚举成员
+
+
+SET类型
+
+SET是一个字符串对象，可以有零或多个值，其值来自表创建时规定的允许的一列值。指定包括多个SET成员的SET列值时各成员之间用逗号(‘,’)间隔开。这样SET成员值本身不能包含逗号。
+
+例如，指定为SET('one', 'two') NOT NULL的列可以有下面的任何值：
+
+''
+'one'
+'two'
+'one,two'
+SET最多可以有64个不同的成员。
+
+当创建表时，SET成员值的尾部空格将自动被删除。
+
+当检索时，保存在SET列的值使用列定义中所使用的大小写来显示。请注意可以为SET列分配字符集和 校对规则。对于二进制或大小写敏感的校对规则，当为列分配值时应考虑大小写。
+
+MySQL用数字保存SET值，所保存值的低阶位对应第1个SET成员。如果在数值上下文中检索一个SET值，检索的值的位设置对应组成列值的SET成员。例如，你可以这样从一个SET列检索数值值：
+
+mysql> SELECT set_col+0 FROM tbl_name;
+
+SET值按数字顺序排序。NULL值排在非NULL SET值的前面。
+
+通常情况，可以使用FIND_IN_SET()函数或LIKE操作符搜索SET值：
+mysql> SELECT * FROM tbl_name WHERE FIND_IN_SET('value',set_col)>0;
+mysql> SELECT * FROM tbl_name WHERE set_col LIKE '%value%';
+
+
+列类型存储需求
+
+MyISAM表中行的最大大小为65,534字节。每个BLOB和TEXT列 账户只占其中的5至9个字节。
+
+如果MyISAM表包括变长列类型，记录格式也是可变长度。当创建表时，在某些条件下，MySQL可以将一个列从变长类型改为固定长度的类型或反之亦然
+
+数值类型  存储需求 
+FLOAT(p)  如果0 <= p <= 24为4个字节, 如果25 <= p <= 53为8个字节
+FLOAT     4个字节
+DOUBLE [PRECISION], item REAL   8个字节
+
+
+
+
+日期和时间类型的存储需求
+列类型   存储需求
+DATE     3个字节
+DATETIME  8个字节
+TIMESTAMP  4个字节
+TIME  3个字节
+YEAR   1个字节
+
+
+
+
+字符串类型的存储需求
+列类型   		存储需求
+CHAR(M)			M个字节，0 <= M <= 255
+VARCHAR(M)		L+1个字节，其中L <= M 且0 <= M <= 65535(参见下面的注释)
+BINARY(M)		M个字节，0 <= M <= 255
+VARBINARY(M)	L+1个字节，其中L <= M 且0 <= M <= 255
+TINYBLOB, TINYTEXT L+1个字节，其中L < 28
+BLOB, TEXT      L+2个字节，其中L < 216
+MEDIUMBLOB, MEDIUMTEXT L+3个字节，其中L < 224
+LONGBLOB, LONGTEXT L+4个字节，其中L < 232
+ENUM('value1','value2',...)	1或2个字节，取决于枚举值的个数(最多65,535个值)
+SET('value1','value2',...)	1、2、3、4或者8个字节，取决于set成员的数目(最多64个成员)
+
+ 
+
+VARCHAR、BLOB和TEXT类是变长类型。每个类型的存储需求取决于列值的实际长度(用前面的表中的L表示)，而不是该类型的最大可能的大小。例如，VARCHAR(10)列可以容纳最大长度为10的字符串。实际存储需求是字符串(L)的长度，加上一个记录字符串长度的字节。对于字符串'abcd'，L是4，存储需要5个字节。
+
+对于CHAR、VARCHAR和TEXT类型，前面的表中的值L和M应解释为字符数目，并且列定义中的这些类型的长度表示字符数目。例如，要想保存一个TINYTEXT值需要L字符+ 1个字节。
+
+要想计算用于保存具体CHAR、VARCHAR或者TEXT列值的字节数，需要考虑该列使用的字符集。在具体情况中，当使用Unicode时，必须记住所有Unicode字符使用相同的字节数。为了细分用于不同类Unicode字符使用的存储，
+
+VARCHAR列的有效最大长度为65,532字符。
+
+NDBCLUSTER引擎只支持固定宽度的列。这说明MySQL簇中的表中的VARCHAR列的行为如同类型CHAR(不同的是每个记录仍然有一个额外字节空间)。例如，在Cluster表中，声明为VARCHAR(100)的列中的每个记录存储时将占用101个字节，无论实际存储的记录中的字符串的长度为多少。
+
+BLOB和TEXT类需要 1、2、3或者4个字节来记录列值的长度，取决于该类的最大可能的长度
+
+在NDB Cluster存储引擎中，TEXT和BLOB列的实施是不同的，其中TEXT列中的每个记录由两个单独部分组成。一个是固定大小(256字节)，并且实际上保存在原表中。另一个包括超出256字节的任何数据，保存在隐含的表中。第2个表中的记录总是2,000字节长。这说明如果size<= 256，TEXT列的大小为256(其中size表示记录的大小)；否则，大小是256 +size+(2000–(size–256)%2000)。
+
+ENUM对象的大小由不同的枚举值的数目确定。枚举用一个字节，可以有255个可能的值。当枚举的值位于256和65,535之间时，用两个字节
+SET对象的大小由不同的set成员的数量确定。如果set大小是N，对象占(N+7)/8个字节，四舍五入到1、2、3、4或者8个字节。SET最多可以有64个成员
+
+选择正确的列类型
+为了优化存储，在任何情况下均应使用最精确的类型。例如，如果列的值的范围为从1到99999，若使用整数，则MEDIUMINT UNSIGNED是好的类型。在所有可以表示该列值的类型中，该类型使用的存储最少。
+
+使用双精度操作对DECIMAL值进行计算。如果准确度不是太重要或如果速度为最高优先级，DOUBLE类型即足够了。为了达到高精度，可以转换到保存在BIGINT中的定点类型。这样可以用64位整数进行所有计算，根据需要将结果转换回浮点值。
+
